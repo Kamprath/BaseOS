@@ -5,10 +5,10 @@ BaseOS = {
         rsOutputSide = nil
     },
     data = {
-        version = '1.0.3-dev',
+        version = '1.0.3',
         baseUrl = 'http://johnny.website',
-        versionUrl = 'http://johnny.website/BaseOS/version.txt',
-        updateUrl = 'http://johnny.website/BaseOS/update.lua',
+        versionUrl = 'http://johnny.website/src/version.txt',
+        updateUrl = 'http://johnny.website/src/BaseOS/update.lua',
         motd = 'Welcome to BaseOS! BaseOS is a platform that provides a better ComputerCraft experience.\n\nType \'help\' for a list of commands.\nType \'program\' for a list of programs.',
         peripheralCount = 0,
         bgColor = colors.black,

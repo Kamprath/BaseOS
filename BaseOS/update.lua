@@ -1,12 +1,12 @@
-local baseUrl = 'http://johnny.website/BaseOS';
+local baseUrl = 'http://johnny.website/src';
 local files = {};
 local newFileCount = 0;
 local continue = true;
 
 -- specify file to URL mappings. Table key represents path on local computer, value represents URL path on website
 files['/startup'] = baseUrl .. '/startup';
-files['/BaseOS/baseos.lua'] = baseUrl .. '/baseos.lua';
-files['/BaseOS/libraries/JSON.lua'] = baseUrl .. '/libraries/JSON.lua';
+files['/BaseOS/baseos.lua'] = baseUrl .. '/BaseOS/baseos.lua';
+files['/BaseOS/libraries/JSON.lua'] = baseUrl .. '/BaseOS/libraries/JSON.lua';
 
 term.clear();
 term.setCursorPos(2, 1);
