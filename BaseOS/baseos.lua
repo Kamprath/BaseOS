@@ -5,7 +5,7 @@ BaseOS = {
         rsOutputSide = nil
     },
     data = {
-        version = '1.0.3',
+        version = '1.0.4',
         baseUrl = 'http://johnny.website',
         versionUrl = 'http://johnny.website/src/version.txt',
         updateUrl = 'http://johnny.website/src/BaseOS/update.lua',
@@ -125,9 +125,9 @@ BaseOS = {
 	-- Writes a string in a specific color
     cwrite = function(self, str, color)
         if (color == nil) then color = self.data.fgColor end;
-        term.setTextColor(color);
+        if (term.isColor()) then term.setTextColor(color); end
         write(str);
-        term.setTextColor(self.data.fgColor);
+        if (term.isColor()) then term.setTextColor(self.data.fgColor); end
     end,
 
     -- Prompt user for configuration data and save to config.lua
