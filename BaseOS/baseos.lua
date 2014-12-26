@@ -2,10 +2,11 @@ BaseOS = {
     -- config data will be loaded from config.lua
     config = {
         rsInputSide = nil,
-        rsOutputSide = nil
+        rsOutputSide = nil,
+        startup = {}
     },
     data = {
-        version = '1.0.4',
+        version = '1.0.5',
         baseUrl = 'http://johnny.website',
         versionUrl = 'http://johnny.website/src/version.txt',
         updateUrl = 'http://johnny.website/src/BaseOS/update.lua',
@@ -26,19 +27,24 @@ BaseOS = {
 
     init = function(self)
         term.clear();
-		if (term.isColor()) then
-        	term.setBackgroundColor(self.data.bgColor);
-        	term.setTextColor(self.data.fgColor);
-		end
+        if (term.isColor()) then
+            term.setBackgroundColor(self.data.bgColor);
+            term.setTextColor(self.data.fgColor);
+        end
 
         self:checkUpdate();
         term.clear();
         term.setCursorPos(1, 2);
 
+        -- detect and load libraries, programs, and peripherals
         self:getLibraries();
         self:getPrograms();
         self:getPeripherals();
 
+        -- init rednet
+        self:initRednet();
+
+        -- get config or trigger setup
         if (not self:getConfig()) then
             self:setup();
         end
@@ -107,6 +113,7 @@ BaseOS = {
             local pType = peripheral.getType(val);
             if (pType ~= nil) then
                 self.peripherals[pType] = peripheral.wrap(val);
+                self.peripherals[pType].side = val;
                 count = count + 1;
             end
         end
@@ -114,7 +121,7 @@ BaseOS = {
         self.data.peripheralCount = count;
     end,
 
-	-- Prints a string in a specific color
+    -- Prints a string in a specific color
     cprint = function(self, str, color)
         if (color == nil) then color = self.data.fgColor end
         if (term.isColor()) then term.setTextColor(color); end
@@ -122,7 +129,7 @@ BaseOS = {
         if (term.isColor()) then term.setTextColor(self.data.fgColor); end
     end,
 
-	-- Writes a string in a specific color
+    -- Writes a string in a specific color
     cwrite = function(self, str, color)
         if (color == nil) then color = self.data.fgColor end;
         if (term.isColor()) then term.setTextColor(color); end
@@ -195,7 +202,7 @@ BaseOS = {
         end
 
         if (self.commands[command] ~= nil) then
-            return self.commands[command](self, args); -- if a method returns false, it indicates that the menu prompt loop should end
+            return self.commands[command](self, unpack(args)); -- if a method returns false, it indicates that the menu prompt loop should end
         else
             self:cprint('Unrecognized command.', colors.red);
             return true;
@@ -274,36 +281,74 @@ BaseOS = {
         local i = 1;
         for key, val in pairs(tbl) do
             keys[i] = key;
-			i = i + 1;
+            i = i + 1;
         end
         textutils.pagedTabulate(keys);
+    end,
+    addStartup = function(self, command, args)
+        local args = args or {};
+        if (self.config.startup == nil) then
+            self.config.startup = {};
+        end
+        self.config.startup[command] = args;
+        self:saveConfig();
+    end,
+    listStartup = function(self)
+        local command;
+        print('Startup commands: ');
+        for key, val in pairs(self.config.startup) do
+            command = key .. val["n"];
+
+            for i=1, table.getn(val) do
+                command = command .. ' ' .. type(val);
+            end
+        end
+        print(command);
+    end,
+    -- Returns the resulting JSON from a request as a table
+    request = function(self, url)
+        local http = http.get(url);
+        if (http ~= nil) then
+            local response = http.readAll();
+            return JSON:decode(response);
+        else
+            return false;
+        end
+    end,
+    initRednet = function(self)
+        if (self.peripherals.modem ~= nil) then
+            rednet.open(self.peripherals.modem.side);
+            return true;
+        else
+            return false;
+        end
     end,
 
     -- Command to method mappings --
     commands = {
-        help = function(self, args)
+        help = function(self, ...)
             self:printTable(self.commands);
 
             return true;
         end,
-        shutdown = function(self, args)
+        shutdown = function(self, ...)
             os.shutdown();
             return false;
         end,
-        restart = function(self, args)
+        restart = function(self, ...)
             os.reboot();
             return false;
         end,
-        exit = function(self, args)
+        exit = function(self, ...)
             return false;
         end,
-        update = function(self, args)
+        update = function(self, ...)
             return self:checkUpdate();
         end,
-        setup = function(self, args)
+        setup = function(self, ...)
             return self:setup();
         end,
-        info = function(self, args)
+        info = function(self, ...)
             print('Computer label:  ' .. os.getComputerLabel());
             print('Computer ID:     ' .. os.getComputerID());
             print('BaseOS version:  ' .. self.data.version);
@@ -311,16 +356,18 @@ BaseOS = {
 
             return true;
         end,
-        download = function(self, args)
-            if (table.getn(args) > 0) then
-                local file = fs.open(args[2], 'w');
-                local request = http.get(args[1]);
+        download = function(self, ...)
+            local arg = arg or {};
+
+            if (table.getn(arg) > 0) then
+                local file = fs.open(arg[2], 'w');
+                local request = http.get(arg[1]);
                 local response = request.readAll();
 
                 if (response ~= nil) then
                     file.write(response);
                     file.close();
-                    print('Resource written to ' .. args[2] .. '.');
+                    print('Resource written to ' .. arg[2] .. '.');
                 else
                     self:cprint('Unable to resolve URL.', colors.red);
                 end
@@ -329,13 +376,14 @@ BaseOS = {
             end
             return true;
         end,
-        program = function(self, args)
+        program = function(self, ...)
             local programName, programArgs;
+            local arg = arg or {};
 
-            if (table.getn(args) > 0) then
-                programName = args[1];
-                table.remove(args, 1);
-                programArgs = args;
+            if (table.getn(arg) > 0) then
+                programName = arg[1];
+                table.remove(arg, 1);
+                programArgs = arg;
 
                 if (self.programs[programName] ~= nil) then
                     self.programs[programName](self, unpack(programArgs));
@@ -345,10 +393,33 @@ BaseOS = {
             else
                 self:cprint('Usage: program <program name> [arguments...]\n\nAvailable programs:', colors.red);
 
-				self:printTable(self.programs);
+                self:printTable(self.programs);
             end
 
             return true;
+        end,
+        startup = function(self, ...)
+            local arg = arg or {};
+
+            if (table.getn(arg) >= 1) then
+                local action = arg[1];
+
+                if (action == 'add') then
+                    local command = arg[2];
+                    table.remove(arg, 1);
+                    table.remove(arg, 2);
+
+                    self:addStartup(command, arg);
+                elseif (action == 'remove') then
+                    --[[local command = arg[2];
+
+                    self:removeStartup(command);]]
+                elseif (action == 'list') then
+                    self:listStartup();
+                end
+            else
+                self:cprint('Usage: startup <add|remove|list> [program] [arguments...]');
+            end
         end
     },
     programs = {}
