@@ -2,15 +2,14 @@ BaseOS = {
     -- config data will be loaded from config.lua
     config = {
         rsInputSide = nil,
-        rsOutputSide = nil,
-        startup = {}
+        rsOutputSide = nil
     },
     data = {
-        version = '1.0.5',
+        version = '1.0.6',
         baseUrl = 'http://johnny.website',
         versionUrl = 'http://johnny.website/src/version.txt',
         updateUrl = 'http://johnny.website/src/BaseOS/update.lua',
-        motd = 'Welcome to BaseOS! BaseOS is a platform that provides a better ComputerCraft experience.\n\nType \'help\' for a list of commands.\nType \'program\' for a list of programs.',
+        motd = 'Welcome to BaseOS! BaseOS is a platform that provides a better ComputerCraft experience.\n\nType \'help\' for a list of commands.\nType \'program\' for a list of programs.\n',
         peripheralCount = 0,
         bgColor = colors.black,
         fgColor = colors.lime
@@ -24,6 +23,8 @@ BaseOS = {
         monitor = nil,
         printer = nil
     },
+    programs = {}, -- store programs loaded from programs directory
+    startup = {}, -- store startup commands loaded from startup directory
 
     init = function(self)
         term.clear();
@@ -41,7 +42,7 @@ BaseOS = {
         self:getPrograms();
         self:getPeripherals();
 
-        -- init rednet
+        -- open rednet
         self:initRednet();
 
         -- get config or trigger setup
@@ -51,6 +52,7 @@ BaseOS = {
 
         print('\n' .. self.data.motd);
 
+        self:doStartup();
         self:menu();
     end,
 
@@ -177,9 +179,8 @@ BaseOS = {
         local exit = false;
 
         while (exit == false) do
-            self:cwrite('\n[BaseOS]: ', colors.white);
+            self:cwrite('[BaseOS]: ', colors.white);
             input = io.read();
-            print();
 
             if (self:parseCommand(input) == false) then
                 exit = true;
@@ -235,6 +236,17 @@ BaseOS = {
         return result
     end,
 
+    -- print the keys of a table in a table layout
+    printTable = function(self, tbl)
+        local keys = {};
+        local i = 1;
+        for key, val in pairs(tbl) do
+            keys[i] = key;
+            i = i + 1;
+        end
+        textutils.pagedTabulate(keys);
+    end,
+
     -- Checks the update server for the latest BaseOS version and initiates the update process if current version doesn't match server's version
     checkUpdate = function(self)
         local rqtVersion = http.get(self.data.versionUrl);
@@ -276,35 +288,76 @@ BaseOS = {
             return true;
         end
     end,
-    printTable = function(self, tbl)
-        local keys = {};
-        local i = 1;
-        for key, val in pairs(tbl) do
-            keys[i] = key;
-            i = i + 1;
-        end
-        textutils.pagedTabulate(keys);
-    end,
-    addStartup = function(self, command, args)
-        local args = args or {};
-        if (self.config.startup == nil) then
-            self.config.startup = {};
-        end
-        self.config.startup[command] = args;
-        self:saveConfig();
-    end,
-    listStartup = function(self)
-        local command;
-        print('Startup commands: ');
-        for key, val in pairs(self.config.startup) do
-            command = key .. val["n"];
 
-            for i=1, table.getn(val) do
-                command = command .. ' ' .. type(val);
-            end
+    doStartup = function(self)
+        local files = fs.list('/BaseOS/startup');
+
+        -- iterate over files from 'startup' directory. For each:
+        for key, val in pairs(files) do
+            -- add an element to the 'startup' table using the file name as the key and the file's contents as the value
+            local file = fs.open('/BaseOS/startup/' .. val, 'r');
+            local contents = file.readAll();
+            file.close();
+
+            self.startup[val] = contents;
         end
-        print(command);
+
+        -- iterate through 'startup' table
+        for key, val in pairs(self.startup) do
+            -- pass command string to self:parseCommand(command);
+            self:parseCommand(val);
+        end
     end,
+
+    addStartup = function(self, command)
+        local filename = math.random(999999);
+        local file = fs.open('/BaseOS/startup/' .. filename, 'w');
+        local success = (file ~= nil);
+
+        if (success) then
+            file.write(command);
+            file.close();
+            self.startup[filename] = command;
+        else
+            self:cprint('[Error] Failed to write to \'/BaseOS/startup/' .. filename .. '\'.', colors.red);
+        end
+
+        return success;
+    end,
+
+    removeStartup = function(self, key)
+        local path = '/BaseOS/startup/' .. key;
+
+        if (self.startup[key] ~= nil and fs.exists(path)) then
+            fs.delete(path);
+            if(not fs.exists(path)) then
+                print('Removed startup command \'' .. self.startup[key] .. '\'.');
+                self.startup[key] = nil;
+            else
+                self:cprint('[Error] Failed to delete \'' .. path .. '\'.');
+                return false;
+            end
+        else
+            self:cprint('No startup command with key ' .. key .. ' exists.', colors.red);
+            return false;
+        end
+    end,
+
+    listStartup = function(self)
+        local count = 0;
+        -- iterate over 'startup' table
+        for key, val in pairs(self.startup) do
+            -- output file name and task
+            self:cwrite(key, colors.white);
+            write(': ' .. val .. '\n');
+            count = count + 1;
+        end
+
+        if (count == 0) then
+            print('No startup commands have been set.');
+        end
+    end,
+
     -- Returns the resulting JSON from a request as a table
     request = function(self, url)
         local http = http.get(url);
@@ -315,6 +368,7 @@ BaseOS = {
             return false;
         end
     end,
+
     initRednet = function(self)
         if (self.peripherals.modem ~= nil) then
             rednet.open(self.peripherals.modem.side);
@@ -400,27 +454,39 @@ BaseOS = {
         end,
         startup = function(self, ...)
             local arg = arg or {};
-
             if (table.getn(arg) >= 1) then
                 local action = arg[1];
-
                 if (action == 'add') then
-                    local command = arg[2];
-                    table.remove(arg, 1);
-                    table.remove(arg, 2);
+                    if (arg[2] ~= nil) then
+                        local command = arg[2];
+                        table.remove(arg, 2);
+                        table.remove(arg, 1);
 
-                    self:addStartup(command, arg);
+                        -- add any arguments to the string
+                        for key, val in pairs(arg) do
+                            if (key ~= 'n') then
+                                command = command .. ' ' .. val;
+                            end
+                        end
+
+                        if (self:addStartup(command)) then
+                            print('Startup command added.');
+                        end
+                    else
+                        self:cprint('Usage: startup add <command> [arg1, ...]', colors.red);
+                    end
                 elseif (action == 'remove') then
-                    --[[local command = arg[2];
-
-                    self:removeStartup(command);]]
+                    if (arg[2] ~= nil) then
+                        self:removeStartup(arg[2]);
+                    else
+                        self:cprint('Usage: startup remove <key>', colors.red);
+                    end
                 elseif (action == 'list') then
                     self:listStartup();
                 end
             else
-                self:cprint('Usage: startup <add|remove|list> [program] [arguments...]');
+                self:cprint('Usage: startup <add ... | remove <key> | list>', colors.red);
             end
         end
-    },
-    programs = {}
+    }
 };

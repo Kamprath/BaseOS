@@ -1,3 +1,5 @@
 .idea/
 BaseOS.iml
 BaseOS/config.lua
+BaseOS/programs
+BaseOS/startup

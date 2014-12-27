@@ -35,6 +35,7 @@ print('\n' .. newFileCount .. ' files updated.');
 
 -- Create any essential directories that don't already exist
 if (not fs.exists('/BaseOS/programs')) then fs.makeDir('/BaseOS/programs') end;
+if (not fs.exists('/BasOS/startup')) then fs.makeDir('/BaseOS/startup') end;
 
 -- Display result message, prompt for any further action
 if (continue and newFileCount > 0) then
