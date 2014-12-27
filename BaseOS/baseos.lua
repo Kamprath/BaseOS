@@ -5,7 +5,7 @@ BaseOS = {
         rsOutputSide = nil
     },
     data = {
-        version = '1.0.7',
+        version = '1.0.8',
         baseUrl = 'http://johnny.website',
         versionUrl = 'http://johnny.website/src/version.txt',
         updateUrl = 'http://johnny.website/src/BaseOS/update.lua',
@@ -56,7 +56,8 @@ BaseOS = {
         self:menu();
     end,
 
-    -- serializes config data to JSON and writes it to config file
+    --- serializes config data to JSON and writes it to config file
+    -- @return true
     saveConfig = function(self)
         local json = JSON:encode(self.config);
         local file = fs.open('/BaseOS/config.json', 'w');
@@ -66,7 +67,7 @@ BaseOS = {
         return true;
     end,
 
-    -- Load any configuration data from file
+    --- Load any configuration data from file
     getConfig = function(self)
         if (fs.exists('/BaseOS/config.json')) then
             local file = fs.open('/BaseOS/config.json', 'r');
@@ -80,7 +81,7 @@ BaseOS = {
         end
     end,
 
-    -- Loads all programs in the programs directory
+    --- Loads all programs in the programs directory
     getPrograms = function(self)
         local files = fs.list('/BaseOS/programs');
 
@@ -106,7 +107,7 @@ BaseOS = {
         end
     end,
 
-    -- Detects peripherals and stores their wrappers in the BaseOS.peripherals table
+    --- Detects peripherals and stores their wrappers in the BaseOS.peripherals table
     getPeripherals = function(self)
         local sides = {'top', 'right', 'bottom', 'left', 'back', 'front'};
         local count = 0;
@@ -123,7 +124,9 @@ BaseOS = {
         self.data.peripheralCount = count;
     end,
 
-    -- Prints a string in a specific color
+    --- Prints a string in a specific color
+    -- @param str       String to print
+    -- @color number    Color value
     cprint = function(self, str, color)
         if (color == nil) then color = self.data.fgColor end
         if (term.isColor()) then term.setTextColor(color); end
@@ -131,7 +134,7 @@ BaseOS = {
         if (term.isColor()) then term.setTextColor(self.data.fgColor); end
     end,
 
-    -- Writes a string in a specific color
+    --- Writes a string in a specific color
     cwrite = function(self, str, color)
         if (color == nil) then color = self.data.fgColor end;
         if (term.isColor()) then term.setTextColor(color); end
@@ -139,7 +142,7 @@ BaseOS = {
         if (term.isColor()) then term.setTextColor(self.data.fgColor); end
     end,
 
-    -- Prompt user for configuration data and save to config.lua
+    --- Prompt user for configuration data and save to config.lua
     setup = function(self)
         local label, input;
         term.clear();
@@ -173,7 +176,7 @@ BaseOS = {
         os.reboot();
     end,
 
-    -- Create a menu loop for command input
+    --- Create a menu loop for command input
     menu = function(self)
         local input;
         local exit = false;
@@ -188,7 +191,7 @@ BaseOS = {
         end
     end,
 
-    -- Parse a string into a command and arguments and call the command
+    --- Parse a string into a command and arguments and call the command
     parseCommand = function(self, input)
         local input = self.split(input, " ");
         local command, args;
@@ -210,7 +213,7 @@ BaseOS = {
         end
     end,
 
-    -- Parses words from a string into a table
+    --- Parses words from a string into a table
     split = function(str, delim, maxNb)
         -- Eliminate bad cases...
         if string.find(str, delim) == nil then
@@ -236,7 +239,7 @@ BaseOS = {
         return result
     end,
 
-    -- print the keys of a table in a table layout
+    --- print the keys of a table in a table layout
     printTable = function(self, tbl)
         local keys = {};
         local i = 1;
@@ -247,7 +250,7 @@ BaseOS = {
         textutils.pagedTabulate(keys);
     end,
 
-    -- Checks the update server for the latest BaseOS version and initiates the update process if current version doesn't match server's version
+    --- Checks the update server for the latest BaseOS version and initiates the update process if current version doesn't match server's version
     checkUpdate = function(self)
         local rqtVersion = http.get(self.data.versionUrl);
 
@@ -269,7 +272,7 @@ BaseOS = {
         return true;
     end,
 
-    -- Downloads and runs the update.lua script
+    --- Downloads and runs the update.lua script
     doUpdate = function(self)
         local rqtDownload = http.get(self.data.updateUrl);
         local code, file;
@@ -361,7 +364,7 @@ BaseOS = {
         end
     end,
 
-    -- Returns the resulting JSON from a request as a table
+    --- Returns the resulting JSON from a request as a table
     getJSON = function(self, url)
         local request = http.get(url);
         local response = request.readAll();
@@ -384,8 +387,14 @@ BaseOS = {
         end
     end,
 
+    --- Sends rednet message across turtle protocol
+    -- @param receiverID    Receiving computer or turtle ID
+    -- @param data          A table of data
+    -- @param getResponse   (Optional) Boolean indicating whether to return response message data or not
+    -- @param token         (Optional) The token of a message that will be responded to
+    -- @return              If a response message was received, return table of data. If not, nothing is returned.
     turtleRequest = function(self, receiverID, data, getResponse, token)
-        getResponse = getResponse or true;
+        if (getResponse == nil) then getResponse = true; end
         token = token or math.random(999999);
         data['token'] = token;
         local json = JSON:encode(data);
