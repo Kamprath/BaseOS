@@ -5,7 +5,7 @@ BaseOS = {
         rsOutputSide = nil
     },
     data = {
-        version = '1.0.6',
+        version = '1.0.7',
         baseUrl = 'http://johnny.website',
         versionUrl = 'http://johnny.website/src/version.txt',
         updateUrl = 'http://johnny.website/src/BaseOS/update.lua',
@@ -362,8 +362,10 @@ BaseOS = {
     end,
 
     -- Returns the resulting JSON from a request as a table
-    request = function(self, url)
+    getJSON = function(self, url)
         local request = http.get(url);
+        local response = request.readAll();
+
         if (request ~= nil) then
             local response = request.readAll();
             request.close();
@@ -379,6 +381,29 @@ BaseOS = {
             return true;
         else
             return false;
+        end
+    end,
+
+    turtleRequest = function(self, receiverID, data, getResponse, token)
+        getResponse = getResponse or true;
+        token = token or math.random(999999);
+        data['token'] = token;
+        local json = JSON:encode(data);
+
+        -- send message to the target ID
+        rednet.send(receiverID, json, 'turtle');
+
+        -- if getResponse is true, wait for a response
+        while (getResponse) do
+            local senderID, response, protocol = rednet.receive('turtle', 3);
+
+            if (senderID ~= nil) then
+                response = JSON:decode(response);
+
+                if (response.token == token) then return response end
+            else
+                return false;
+            end
         end
     end,
 
