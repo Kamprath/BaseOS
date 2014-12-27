@@ -253,6 +253,7 @@ BaseOS = {
 
         if (rqtVersion ~= nil) then
             local response = rqtVersion.readAll();
+            rqtVersion.close();
             if (self.data.version ~= response) then
                 write("A new BaseOS version (" .. response .. ") is available.\n\nUpdate now? (y/n): ");
                 if (io.read() == 'y') then
@@ -276,6 +277,8 @@ BaseOS = {
         if (rqtDownload ~= nil) then
             -- save update.lua contents to a file
             code = rqtDownload.readAll();
+            rqtDownload.close();
+
             file = fs.open('/BaseOS/update.lua', 'w');
             file.write(code);
             file.close();
@@ -360,9 +363,10 @@ BaseOS = {
 
     -- Returns the resulting JSON from a request as a table
     request = function(self, url)
-        local http = http.get(url);
-        if (http ~= nil) then
-            local response = http.readAll();
+        local request = http.get(url);
+        if (request ~= nil) then
+            local response = request.readAll();
+            request.close();
             return JSON:decode(response);
         else
             return false;
@@ -417,6 +421,7 @@ BaseOS = {
                 local file = fs.open(arg[2], 'w');
                 local request = http.get(arg[1]);
                 local response = request.readAll();
+                request.close();
 
                 if (response ~= nil) then
                     file.write(response);
