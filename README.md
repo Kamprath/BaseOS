@@ -18,4 +18,4 @@ Features
 * An arsenal of turtle programs such as task automation,TNT payload delivery, traveling to GPS coordinates, and much more
 * And many more to come!
 
-Interested? Then (learn how to install BaseOS)[] on your ComputerCraft devices and (get started)[]!
+Interested? Then <a href="https://github.com/ravroid/BaseOS/wiki/Installing-BaseOS">learn how to install BaseOS</a> on your ComputerCraft devices and <a href="https://github.com/ravroid/BaseOS/wiki/Basic-Usage">get started</a>!
