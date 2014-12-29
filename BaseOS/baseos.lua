@@ -5,7 +5,7 @@ BaseOS = {
         rsOutputSide = nil
     },
     data = {
-        version = '1.0.8',
+        version = '1.0.9',
         baseUrl = 'http://johnny.website',
         versionUrl = 'http://johnny.website/src/version.txt',
         updateUrl = 'http://johnny.website/src/BaseOS/update.lua',
@@ -362,6 +362,15 @@ BaseOS = {
         if (count == 0) then
             print('No startup commands have been set.');
         end
+    end,
+
+    --- Gets the size of a table
+    tableSize = function(self, tbl)
+        local count = 0;
+        for key, val in pairs(tbl) do
+            count = count + 1;
+        end
+        return count;
     end,
 
     --- Returns the resulting JSON from a request as a table
