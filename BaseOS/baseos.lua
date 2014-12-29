@@ -5,7 +5,8 @@ BaseOS = {
         rsOutputSide = nil
     },
     data = {
-        version = '1.0.9',
+        version = '1.1',
+        requiredCraftOS = 'CraftOS 1.6',
         baseUrl = 'http://johnny.website',
         versionUrl = 'http://johnny.website/src/version.txt',
         updateUrl = 'http://johnny.website/src/BaseOS/update.lua',
@@ -23,9 +24,10 @@ BaseOS = {
         monitor = nil,
         printer = nil
     },
-    programs = {}, -- store programs loaded from programs directory
+    programs = {}, -- store programs loaded from programs directory,
     startup = {}, -- store startup commands loaded from startup directory
 
+    --- Initialize the application
     init = function(self)
         term.clear();
         if (term.isColor()) then
@@ -33,27 +35,33 @@ BaseOS = {
             term.setTextColor(self.data.fgColor);
         end
 
+        if (not self:checkSystem()) then
+            print('BaseOS is incompatible with this computer.');
+            return false;
+        end
         self:checkUpdate();
         term.clear();
         term.setCursorPos(1, 2);
 
-        -- detect and load libraries, programs, and peripherals
         self:getLibraries();
         self:getPrograms();
         self:getPeripherals();
-
-        -- open rednet
+        self:getComponents();
         self:initRednet();
-
-        -- get config or trigger setup
-        if (not self:getConfig()) then
-            self:setup();
-        end
+        if (not self:getConfig()) then self:setup(); end
 
         print('\n' .. self.data.motd);
-
         self:doStartup();
         self:menu();
+    end,
+
+    --- load any components
+    getComponents = function(self)
+        local files = fs.list('/BaseOS/components');
+
+        for key, val in pairs(files) do
+            dofile('/BaseOS/components/' .. val);
+        end
     end,
 
     --- serializes config data to JSON and writes it to config file
@@ -205,8 +213,8 @@ BaseOS = {
             args = {};
         end
 
-        if (self.commands[command] ~= nil) then
-            return self.commands[command](self, unpack(args)); -- if a method returns false, it indicates that the menu prompt loop should end
+        if (self.Commands[command] ~= nil) then
+            return self.Commands[command](self, unpack(args)); -- if a method returns false, it indicates that the menu prompt loop should end
         else
             self:cprint('Unrecognized command.', colors.red);
             return true;
@@ -270,6 +278,12 @@ BaseOS = {
         end
 
         return true;
+    end,
+
+    --- Checks ComputerCraft version and computer type to determine if application can be run
+    -- @return  Returns true if system meets requirements, or false if not
+    checkSystem = function(self)
+        return (term.isColor() and os.version() == self.data.requiredCraftOS and http);
     end,
 
     --- Downloads and runs the update.lua script
@@ -395,146 +409,4 @@ BaseOS = {
             return false;
         end
     end,
-
-    --- Sends rednet message across turtle protocol
-    -- @param receiverID    Receiving computer or turtle ID
-    -- @param data          A table of data
-    -- @param getResponse   (Optional) Boolean indicating whether to return response message data or not
-    -- @param token         (Optional) The token of a message that will be responded to
-    -- @return              If a response message was received, return table of data. If not, nothing is returned.
-    turtleRequest = function(self, receiverID, data, getResponse, token)
-        if (getResponse == nil) then getResponse = true; end
-        token = token or math.random(999999);
-        data['token'] = token;
-        local json = JSON:encode(data);
-
-        -- send message to the target ID
-        rednet.send(receiverID, json, 'turtle');
-
-        -- if getResponse is true, wait for a response
-        while (getResponse) do
-            local senderID, response, protocol = rednet.receive('turtle', 3);
-
-            if (senderID ~= nil) then
-                response = JSON:decode(response);
-
-                if (response.token == token) then return response end
-            else
-                return false;
-            end
-        end
-    end,
-
-    -- Command to method mappings --
-    commands = {
-        help = function(self, ...)
-            self:printTable(self.commands);
-
-            return true;
-        end,
-        shutdown = function(self, ...)
-            os.shutdown();
-            return false;
-        end,
-        restart = function(self, ...)
-            os.reboot();
-            return false;
-        end,
-        exit = function(self, ...)
-            return false;
-        end,
-        update = function(self, ...)
-            return self:checkUpdate();
-        end,
-        setup = function(self, ...)
-            return self:setup();
-        end,
-        info = function(self, ...)
-            print('Computer label:  ' .. os.getComputerLabel());
-            print('Computer ID:     ' .. os.getComputerID());
-            print('BaseOS version:  ' .. self.data.version);
-            print('Peripherals:     ' .. self.data.peripheralCount);
-
-            return true;
-        end,
-        download = function(self, ...)
-            local arg = arg or {};
-
-            if (table.getn(arg) > 0) then
-                local file = fs.open(arg[2], 'w');
-                local request = http.get(arg[1]);
-                local response = request.readAll();
-                request.close();
-
-                if (response ~= nil) then
-                    file.write(response);
-                    file.close();
-                    print('Resource written to ' .. arg[2] .. '.');
-                else
-                    self:cprint('Unable to resolve URL.', colors.red);
-                end
-            else
-                self:cprint('Usage: download <url> <file path>');
-            end
-            return true;
-        end,
-        program = function(self, ...)
-            local programName, programArgs;
-            local arg = arg or {};
-
-            if (table.getn(arg) > 0) then
-                programName = arg[1];
-                table.remove(arg, 1);
-                programArgs = arg;
-
-                if (self.programs[programName] ~= nil) then
-                    self.programs[programName](self, unpack(programArgs));
-                else
-                    print('Unrecognized program.');
-                end
-            else
-                self:cprint('Usage: program <program name> [arguments...]\n\nAvailable programs:', colors.red);
-
-                self:printTable(self.programs);
-            end
-
-            return true;
-        end,
-        startup = function(self, ...)
-            local arg = arg or {};
-            if (table.getn(arg) >= 1) then
-                local action = arg[1];
-                if (action == 'add') then
-                    if (arg[2] ~= nil) then
-                        local command = arg[2];
-                        table.remove(arg, 2);
-                        table.remove(arg, 1);
-
-                        -- add any arguments to the string
-                        for key, val in pairs(arg) do
-                            if (key ~= 'n') then
-                                command = command .. ' ' .. val;
-                            end
-                        end
-
-                        if (self:addStartup(command)) then
-                            print('Startup command added.');
-                        end
-                    else
-                        self:cprint('Usage: startup add <command> [arg1, ...]', colors.red);
-                    end
-                elseif (action == 'remove') then
-                    if (arg[2] ~= nil) then
-                        self:removeStartup(arg[2]);
-                    else
-                        self:cprint('Usage: startup remove <key>', colors.red);
-                    end
-                elseif (action == 'list') then
-                    self:listStartup();
-                end
-            else
-                self:cprint('Usage: startup <add ... | remove <key> | list>', colors.red);
-            end
-        end
-    }
 };
