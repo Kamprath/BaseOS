@@ -12,9 +12,10 @@ Features
 * Automatic peripheral handling (detection and wrapping)
 * Startup command manager
 * HTTP-style Rednet communication
-* Transmit Lua tables over rednet Rednet
+* Transmit Lua tables over Rednet
 * Easy file and program sharing between computers
 * Remote turtle control from computers and PDAs
-* And many more to come!
+* Automatic updates
+* And many more to come
 
 Interested? <a href="https://github.com/ravroid/BaseOS/wiki/Installing-BaseOS">Learn how to install BaseOS</a> on your ComputerCraft devices and <a href="https://github.com/ravroid/BaseOS/wiki/Basic-Usage">get started</a>!
