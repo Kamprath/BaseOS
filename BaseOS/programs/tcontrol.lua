@@ -11,6 +11,7 @@ BaseOS.programs['TControl'] = function(self, ...)
     -- define the program
     local TurtleControl = {
         data = {
+            running = true,
             window = {width = nil, height = nil},       -- window information
             keys = {                                    -- key codes
                 up = 200,
@@ -39,31 +40,59 @@ BaseOS.programs['TControl'] = function(self, ...)
                         local e, key = os.pullEvent('key');
 
                         if (key == self.data.keys.w) then
-                            self.menus['move']['forward'](self);
+                            self.commands['forward'](self);
                         elseif (key == self.data.keys.s) then
-                            self.menus['move']['back'](self);
+                            self.commands['back'](self);
                         elseif (key == self.data.keys.a) then
-                            self.menus['move']['left'](self);
+                            self.commands['left'](self);
                         elseif (key == self.data.keys.d) then
-                            self.menus['move']['right'](self);
+                            self.commands['right'](self);
                         elseif (key == self.data.keys.ctrl) then
-                            self.menus['move']['down'](self);
+                            self.commands['down'](self);
                         elseif (key == self.data.keys.space) then
-                            self.menus['move']['up'](self);
+                            self.commands['up'](self);
                         elseif (key == self.data.keys.enter) then
-                            self.menus['move']['dig'](self);
+                            self.commands['dig'](self);
                         elseif (key == self.data.keys.alt) then
                             break;
                         end
                     end
                 end,
                 ['Dump inventory'] = function(self)
-
+                    BaseOS.Turtle:request(self.data.turtleID, {type='command',command='dump'}, false);
                 end,
                 ['Get fuel level'] = function(self)
 
+                end,
+                ['Exit'] = function(self)
+                    term.clear();
+                    term.setCursorPos(1, 1);
+                    self.data.running = false;
                 end
             }
+        },
+        commands = {
+            ['forward'] = function(self)
+                BaseOS.Turtle:request(self.data.turtleID, {['type']='command',['command']='forward'}, false);
+            end,
+            ['right'] = function(self)
+                BaseOS.Turtle:request(self.data.turtleID, {['type']='command',['command']='right'}, false);
+            end,
+            ['back'] = function(self)
+                BaseOS.Turtle:request(self.data.turtleID, {['type']='command',['command']='back'}, false);
+            end,
+            ['left'] = function(self)
+                BaseOS.Turtle:request(self.data.turtleID, {['type']='command',['command']='left'}, false);
+            end,
+            ['up'] = function(self)
+                BaseOS.Turtle:request(self.data.turtleID, {['type']='command',['command']='up'}, false);
+            end,
+            ['down'] = function(self)
+                BaseOS.Turtle:request(self.data.turtleID, {['type']='command',['command']='down'}, false);
+            end,
+            ['dig'] = function(self)
+                BaseOS.Turtle:request(self.data.turtleID, {['type']='command',['command']='dig'}, false)
+            end
         },
 
         init = function(self)
@@ -83,7 +112,7 @@ BaseOS.programs['TControl'] = function(self, ...)
 
         --- Main loop to run the program
         startLoop = function(self)
-            while (true) do
+            while (self.data.running) do
                 -- draw the interface
                 self:drawInterface();
 
@@ -104,7 +133,7 @@ BaseOS.programs['TControl'] = function(self, ...)
 
                 if ((key == self.data.keys.up or key == self.data.keys.w) and (selection - 1) >= 1) then
                     self.data.selection = selection - 1;
-                elseif ((key == self.data.keys.down or key == self.data.keys.d) and (selection + 1) <= menuSize) then
+                elseif ((key == self.data.keys.down or key == self.data.keys.s) and (selection + 1) <= menuSize) then
                     self.data.selection = selection + 1;
                 elseif (key == self.data.keys.enter) then
                     self:doMenuAction(self.menus[self.data.activeMenuKey], self.data.selection);
