@@ -1,17 +1,12 @@
 --[[
--- TurtleControl provides an interface for remotely controlling a turtle
---
--- Requirements:
---   * Turtle component
---   * BaseOS v1.1 or newer
+-- TurtleControl allows control of turtles running TurtleListen
 --]]
 
--- register program with BaseOS
 BaseOS.programs['TControl'] = function(self, ...)
-    -- define the program
+
     local TurtleControl = {
         data = {
-            running = true,
+            connected = false,
             window = {width = nil, height = nil},       -- window information
             keys = {                                    -- key codes
                 up = 200,
@@ -20,99 +15,85 @@ BaseOS.programs['TControl'] = function(self, ...)
                 space = 57,
                 ctrl = 29,
                 alt = 56,
+                tab = 15,
                 w = 17,
                 a = 30,
                 s = 31,
-                d = 32
+                d = 32,
+                e = 18,
+                q = 16
             },
             turtleID = nil,                             -- ID of the currently-connected turtle
             selection = 1,                              -- Current menu selection,
-            activeMenuKey = nil                         -- The array key of an object in the 'menus' table
+            activeMenuKey = nil,                        -- The array key of an object in the 'menus' table
+            message = ''
         },
+
         menus = {
             ['main'] = {
-                ['Enter direct control mode'] = function(self)
-                    term.clear();
-                    term.setCursorPos(1, 1);
-                    print('Use W, A, S, D, Space, and Ctrl to move around.\n\nPress Enter to dig.\n\nPress Alt to exit direct control mode.');
-
-                    while (true) do
-                        local e, key = os.pullEvent('key');
-
-                        if (key == self.data.keys.w) then
-                            self.commands['forward'](self);
-                        elseif (key == self.data.keys.s) then
-                            self.commands['back'](self);
-                        elseif (key == self.data.keys.a) then
-                            self.commands['left'](self);
-                        elseif (key == self.data.keys.d) then
-                            self.commands['right'](self);
-                        elseif (key == self.data.keys.ctrl) then
-                            self.commands['down'](self);
-                        elseif (key == self.data.keys.space) then
-                            self.commands['up'](self);
-                        elseif (key == self.data.keys.enter) then
-                            self.commands['dig'](self);
-                        elseif (key == self.data.keys.alt) then
-                            break;
-                        end
-                    end
+                ['Control turtle'] = function(self)
+                    self:controlTurtle();
                 end,
-                ['Dump inventory'] = function(self)
-                    BaseOS.Turtle:request(self.data.turtleID, {type='command',command='dump'}, false);
+                ['Select Inventory Item'] = function(self)
+                    self:viewInventory();
                 end,
-                ['Get fuel level'] = function(self)
-
-                end,
-                ['Exit'] = function(self)
-                    term.clear();
-                    term.setCursorPos(1, 1);
-                    self.data.running = false;
+                ['Disconnect'] = function(self)
+                    self:disconnect();
                 end
             }
         },
-        commands = {
-            ['forward'] = function(self)
-                BaseOS.Turtle:request(self.data.turtleID, {['type']='command',['command']='forward'}, false);
-            end,
-            ['right'] = function(self)
-                BaseOS.Turtle:request(self.data.turtleID, {['type']='command',['command']='right'}, false);
-            end,
-            ['back'] = function(self)
-                BaseOS.Turtle:request(self.data.turtleID, {['type']='command',['command']='back'}, false);
-            end,
-            ['left'] = function(self)
-                BaseOS.Turtle:request(self.data.turtleID, {['type']='command',['command']='left'}, false);
-            end,
-            ['up'] = function(self)
-                BaseOS.Turtle:request(self.data.turtleID, {['type']='command',['command']='up'}, false);
-            end,
-            ['down'] = function(self)
-                BaseOS.Turtle:request(self.data.turtleID, {['type']='command',['command']='down'}, false);
-            end,
-            ['dig'] = function(self)
-                BaseOS.Turtle:request(self.data.turtleID, {['type']='command',['command']='dig'}, false)
+
+        --- Sends a command request to the connected turtle
+        -- @param command       The command name
+        -- @param args          (Optional) An array of command arguments
+        -- @param getResponse   (Optional) If true, the method will wait for a response message
+        command = function(self, command, args, getResponse)
+            args = args or {};
+            getResponse = getResponse or false;
+            local data = {
+                type = 'command',
+                command = command
+            };
+            if (#args > 0) then
+                data.args = args;
             end
-        },
+
+            local responseData = BaseOS.Turtle:request(self.data.turtleID, data, getResponse);
+
+            if (responseData ~= nil and responseData ~= false) then
+                if (responseData.message ~= nil) then
+                    self.data.message = responseData.message;
+                end
+
+            end
+        end,
 
         init = function(self)
             self.data.window.width, self.data.window.height = term.getSize();
 
-            -- establish a connection to the turtle
-            BaseOS:cwrite('Specify turtle ID to connect to: ', colors.white);
-            self.data.turtleID = tonumber(io.read());
-            -- todo: send 'connect' message to turtle
+            while (not self.data.connected) do
+                -- establish a connection to the turtle
+                BaseOS:cwrite('Specify turtle ID to connect to: ', colors.white);
+                self.data.turtleID = tonumber(io.read());
+                local response = BaseOS.Turtle:request(self.data.turtleID, {type='connect'});
+                if (not response == false) then
+                    if (response.success == true) then
+                        self.data.activeMenuKey = 'main';
+                        self.data.connected = true;
+                    else
+                        BaseOS:cprint('Turtle refused connection.', colors.red);
+                    end
+                else
+                    BaseOS:cprint('Turtle not found.', colors.red);
+                end
+            end
 
-            -- set the menu that should be displayed. This should change based on what you want this program to do
-            self.data.activeMenuKey = 'main';
-
-            -- run the event-listening loop
             self:startLoop();
         end,
 
         --- Main loop to run the program
         startLoop = function(self)
-            while (self.data.running) do
+            while (self.data.connected) do
                 -- draw the interface
                 self:drawInterface();
 
@@ -135,13 +116,14 @@ BaseOS.programs['TControl'] = function(self, ...)
                     self.data.selection = selection - 1;
                 elseif ((key == self.data.keys.down or key == self.data.keys.s) and (selection + 1) <= menuSize) then
                     self.data.selection = selection + 1;
-                elseif (key == self.data.keys.enter) then
+                elseif (key == self.data.keys.enter or key == self.data.keys.space or key == self.data.keys.e) then
                     self:doMenuAction(self.menus[self.data.activeMenuKey], self.data.selection);
                 end
             end
         end,
 
         doMenuAction = function(self, menu, optionNum)
+            self.data.message = '';
             local i = 1;
             for key, val in pairs(menu) do
                 if (optionNum == i) then
@@ -154,7 +136,7 @@ BaseOS.programs['TControl'] = function(self, ...)
             return false;
         end,
 
-        -- draws a menu to the terminal
+        --- Draws a menu to the terminal
         drawMenu = function(self, menu, selection)
             local menuSize = BaseOS:tableSize(menu);
             term.setCursorPos(1, math.floor((self.data.window.height - (menuSize * 2)) / 2));
@@ -179,6 +161,76 @@ BaseOS.programs['TControl'] = function(self, ...)
 
             -- draw self.data.activeMenu as menu
             self:drawMenu(self.menus[self.data.activeMenuKey], self.data.selection);
+
+            -- write message (if any) to bottom of screen
+            term.setCursorPos(1, self.data.window.height - 1);
+            BaseOS:cprint(self.data.message, colors.white);
+        end,
+
+        -- Menu functions
+
+        --- Listens for key press events and sends corresponding commands to turtle
+        controlTurtle = function(self)
+            -- bindings[<key code>] = <command name>
+            local bindings = {
+                [self.data.keys.w] = 'forward',
+                [self.data.keys.s] = 'back',
+                [self.data.keys.a] = 'left',
+                [self.data.keys.d] = 'right',
+                [self.data.keys.ctrl] = 'down',
+                [self.data.keys.space] = 'up',
+                [self.data.keys.e] = 'dig'
+            };
+
+            term.clear();
+            term.setCursorPos(1, 1);
+            print('Use W, A, S, D, Space, and Ctrl to move around.\n\nPress E to dig and Q to place an item from the turtle\'s current slot.\n\nPress Tab to exit direct control mode.');
+
+            while (true) do
+                local e, key = os.pullEvent('key');
+
+                if (bindings[key] ~= nil) then
+                    self:command(bindings[key]);
+                elseif (key == self.data.keys.q) then
+                    self:placeItem();
+                elseif (key == self.data.keys.tab) then
+                    break;
+                end
+            end
+        end,
+
+        viewInventory = function(self)
+            -- send viewinventory command, turtle should respond with data
+            local data = BaseOS.Turtle:request(self.data.turtleID, {type='command',command='viewinventory'});
+
+            if (data.inventory ~= nil and data.activeSlot ~= nil) then
+                self.menus['inventory'] = data.inventory;
+                self.data.activeMenuKey = 'inventory';
+
+                for key, val in pairs(self.menus['inventory']) do
+                    -- initially, the array key points to the slot number of the inventory item
+                    local slot = self.menus['inventory'][key];
+                    -- the array key is then reassigned a closure that will execute when the menu choice is selected
+                    self.menus['inventory'][key] = function(self)
+                        BaseOS.Turtle:request(self.data.turtleID, {type='command',command='selectslot',args={slot}, false});
+                        self.data.activeMenuKey = 'main';
+                        self.data.message = 'Set active turtle slot to item \'' .. key .. '\'';
+                    end
+                end
+            end
+        end,
+
+        placeItem = function(self)
+            BaseOS.Turtle:request(self.data.turtleID, {type='command',command='place'}, false);
+        end,
+
+        disconnect = function(self)
+            term.clear();
+            term.setCursorPos(1, 1);
+            self.data.connected = false;
+
+            -- send disconnect message to turtle
+            BaseOS.Turtle:request(self.data.turtleID, {type='disconnect'}, false);
         end
     }
 
