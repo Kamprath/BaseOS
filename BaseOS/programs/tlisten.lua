@@ -1,3 +1,7 @@
+--[[
+-- TurtleListen listens for and responds to requests from TurtleControl programs
+--]]
+
 BaseOS.programs['TListen'] = function(self, ...)
     local TurtleListen = {
         data = {

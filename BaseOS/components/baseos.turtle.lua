@@ -1,3 +1,7 @@
+--[[
+--  The Turtle component contains methods for interacting with turtles and interacting with TurtleOS.
+--]]
+
 BaseOS.Turtle = {
     --- Sends a rednet message on protocol 'turtle' containing a JSON-encoded table of data
     -- @param receiverID    ID of recipient computer or turtle
