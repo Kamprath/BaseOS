@@ -36,13 +36,20 @@ BaseOS.Commands = {
 
             if (self.programs[programName] ~= nil) then
                 self.programs[programName](self, unpack(programArgs));
+            elseif (self.nativePrograms[programName] ~= nil) then
+                self.nativePrograms[programName](self, unpack(programArgs));
             else
                 print('Unrecognized program.');
             end
         else
-            self:cprint('Usage: program <program name> [arguments...]\n\nAvailable programs:', colors.red);
-
+            self:cwrite('Usage: ', colors.white);
+            write('program <program name> [arguments...]\n')
+            ;
+            self:cprint('\nBaseOS Programs:', colors.white);
             self:printTable(self.programs);
+
+            self:cprint('\nCraftOS Programs:', colors.white);
+            self:printTable(self.nativePrograms);
         end
 
         return true;

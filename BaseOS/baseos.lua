@@ -5,7 +5,7 @@ BaseOS = {
         rsOutputSide = nil
     },
     data = {
-        version = '1.1.1',
+        version = '1.1.2',
         requiredCraftOS = 'CraftOS 1.6',
         baseUrl = 'http://johnny.website',
         versionUrl = 'http://johnny.website/src/version.txt',
@@ -25,6 +25,7 @@ BaseOS = {
         printer = nil
     },
     programs = {}, -- store programs loaded from programs directory,
+    nativePrograms = {},
     startup = {}, -- store startup commands loaded from startup directory
 
     --- Initialize the application
@@ -101,7 +102,7 @@ BaseOS = {
         local programs = shell.programs();
         for key, val in pairs(programs) do
             -- add function that executes os.run() on the program when called
-            self.programs[val] = function(self, ...)
+            self.nativePrograms[val] = function(self, ...)
                 shell.run(val, unpack(arg));
             end
         end
