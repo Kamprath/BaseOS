@@ -5,15 +5,47 @@ BaseOS = {
         rsOutputSide = nil
     },
     data = {
-        version = '1.1.2',
+        version = '1.2',
         requiredCraftOS = 'CraftOS 1.6',
         baseUrl = 'http://johnny.website',
         versionUrl = 'http://johnny.website/src/version.txt',
         updateUrl = 'http://johnny.website/src/BaseOS/update.lua',
         motd = 'Welcome to BaseOS! BaseOS is a platform that provides a better ComputerCraft experience.\n\nType \'help\' for a list of commands.\nType \'program\' for a list of programs.\n',
         peripheralCount = 0,
-        bgColor = colors.black,
-        fgColor = colors.lime
+        running = true,
+        promptMode = false,
+        term = {
+            bgColor = colors.black,
+            fgColor = colors.lime,
+            width = nil,
+            height = nil
+        },
+        menu = {
+            selection = 1,
+            key = 'main',
+            columnSize = nil,
+            history = {}
+        },
+        keys = {
+            up = 200,
+            down = 208,
+            enter = 28,
+            space = 57,
+            ctrl = 29,
+            alt = 56,
+            tab = 15,
+            w = 17,
+            a = 30,
+            s = 31,
+            d = 32,
+            f = 33,
+            e = 18,
+            q = 16
+        },
+        window = {
+            width = nil,
+            height = nil
+        }
     },
     -- Store wrapped peripherals
     peripherals = {
@@ -30,17 +62,19 @@ BaseOS = {
 
     --- Initialize the application
     init = function(self)
+        self.data.window.width, self.data.window.height = term.getSize();
+        self.data.menu.columnSize = self.data.window.width / 4;
+
         term.clear();
-        if (term.isColor()) then
-            term.setBackgroundColor(self.data.bgColor);
-            term.setTextColor(self.data.fgColor);
-        end
+        term.setBackgroundColor(self.data.term.bgColor);
+        term.setTextColor(self.data.term.fgColor);
 
         if (not self:checkSystem()) then
             print('BaseOS is incompatible with this computer.');
             return false;
         end
         self:checkUpdate();
+
         term.clear();
         term.setCursorPos(1, 2);
 
@@ -51,7 +85,6 @@ BaseOS = {
         self:initRednet();
         if (not self:getConfig()) then self:setup(); end
 
-        print('\n' .. self.data.motd);
         self:doStartup();
         self:menu();
     end,
@@ -137,18 +170,18 @@ BaseOS = {
     -- @param str       String to print
     -- @color number    Color value
     cprint = function(self, str, color)
-        if (color == nil) then color = self.data.fgColor end
+        if (color == nil) then color = self.data.term.fgColor end
         if (term.isColor()) then term.setTextColor(color); end
         print(str);
-        if (term.isColor()) then term.setTextColor(self.data.fgColor); end
+        if (term.isColor()) then term.setTextColor(self.data.term.fgColor); end
     end,
 
     --- Writes a string in a specific color
     cwrite = function(self, str, color)
-        if (color == nil) then color = self.data.fgColor end;
+        if (color == nil) then color = self.data.term.fgColor end;
         if (term.isColor()) then term.setTextColor(color); end
         write(str);
-        if (term.isColor()) then term.setTextColor(self.data.fgColor); end
+        if (term.isColor()) then term.setTextColor(self.data.term.fgColor); end
     end,
 
     --- Prompt user for configuration data and save to config.lua
@@ -187,16 +220,126 @@ BaseOS = {
 
     --- Create a menu loop for command input
     menu = function(self)
-        local input;
-        local exit = false;
+        while (self.data.running) do
+            self:drawMenu();
+            self:handleEvent(os.pullEvent('key'));
+        end
+    end,
 
-        while (exit == false) do
+    drawMenu = function(self)
+        local menu = self.Menus[self.data.menu.key];
+        local menuSize = self:tableSize(menu);
+        local yStart;
+
+        -- insert 'back'/'exit' menu option
+        if (menu[menuSize].name ~= 'Exit' and menu[menuSize].name ~= 'Back') then
+            menu[menuSize+1] = {};
+            if (#self.data.menu.history > 0) then
+                menu[menuSize+1].name = 'Back';
+            else
+                menu[menuSize+1].name = 'Exit';
+            end
+            menu[menuSize+1].action = self.previousMenu;
+            menuSize = menuSize + 1;
+        end
+
+        term.clear();
+        if ((menuSize * 2) < self.data.window.height) then
+            yStart = math.floor((self.data.window.height - (menuSize * 2)) / 2);
+        else
+            yStart = 1;
+        end
+
+        term.setCursorPos(1, yStart);
+
+        local column = 0;
+        local columns = math.floor(self.data.window.width / self.data.menu.columnSize);
+        local i = 1;
+        for key, option in ipairs(menu) do
+            local x, y = term.getCursorPos();
+            if (column < columns) then
+                -- if end of terminal has been reached, move to a new column
+                if (y >= self.data.window.height) then
+                    if ((column + 1) < columns) then
+                        column = column + 1;
+                        y = yStart;
+                    else
+                        break;
+                    end
+                end
+
+                if (column > 0) then
+                    x = column * self.data.menu.columnSize;
+                end
+
+                term.setCursorPos(x, y);
+
+                -- prefix active menu choice
+                if (key == self.data.menu.selection) then
+                    self:cwrite(' > ', colors.white);
+                else
+                    write('   ');
+                end
+
+                write(option.name .. '\n\n');
+                i = i + 1;
+            end
+        end
+    end,
+    setMenu = function(self, key, setHistory)
+        if (setHistory == nil) then setHistory = true; end
+
+        if (setHistory) then
+            table.insert(self.data.menu.history, self.data.menu.key);
+        end
+
+        self.data.menu.key = key;
+        self.data.menu.selection = 1;
+    end,
+    previousMenu = function(self)
+        local historySize = #self.data.menu.history;
+        local key = self.data.menu.history[historySize];
+
+        if (historySize> 0) then
+            table.remove(self.data.menu.history, historySize)
+            self:setMenu(key, false);
+        else
+            term.clear();
+            term.setCursorPos(1, 1);
+            self.data.running = false;
+        end
+    end,
+
+    handleEvent = function(self, ...)
+        -- remove first argument from arguments table
+        local eventType = table.remove(arg, 1);
+
+        if (eventType == 'key') then
+            local key = arg[1];
+            local menu = self.Menus[self.data.menu.key];
+            local selection = self.data.menu.selection;
+            local menuSize = self:tableSize(menu);
+
+            if ((key == self.data.keys.up or key == self.data.keys.w) and (selection - 1) >= 1) then
+                self.data.menu.selection = selection - 1;
+            elseif ((key == self.data.keys.down or key == self.data.keys.s) and (selection + 1) <= menuSize) then
+                self.data.menu.selection = selection + 1;
+            elseif (key == self.data.keys.enter or key == self.data.keys.space or key == self.data.keys.e) then
+                menu[self.data.menu.selection].action(self);
+            end
+        end
+    end,
+
+    prompt = function(self)
+        term.clear();
+        term.setCursorPos(1, 1);
+        print('\n' .. self.data.motd);
+
+        while (self.data.promptMode) do
             self:cwrite('[BaseOS]: ', colors.white);
             input = io.read();
 
-            if (self:parseCommand(input) == false) then
-                exit = true;
-            end
+            self:parseCommand(input);
         end
     end,
 
@@ -215,10 +358,9 @@ BaseOS = {
         end
 
         if (self.Commands[command] ~= nil) then
-            return self.Commands[command](self, unpack(args)); -- if a method returns false, it indicates that the menu prompt loop should end
+            self.Commands[command](self, unpack(args));
         else
             self:cprint('Unrecognized command.', colors.red);
-            return true;
         end
     end,
 
@@ -382,9 +524,13 @@ BaseOS = {
     --- Gets the size of a table
     tableSize = function(self, tbl)
         local count = 0;
-        for key, val in pairs(tbl) do
-            count = count + 1;
+
+        if (tbl ~= nil) then
+            for key, val in pairs(tbl) do
+                count = count + 1;
+            end
         end
+
         return count;
     end,
 

@@ -1,29 +1,31 @@
 BaseOS.Commands = {
     help = function(self, ...)
         self:printTable(self.Commands);
-        return true;
     end,
     shutdown = function(self, ...)
         os.shutdown();
-        return false;
     end,
     restart = function(self, ...)
         os.reboot();
-        return false;
     end,
     exit = function(self, ...)
-        return false;
+        -- exit prompt mode if active or quit application
+        term.clear();
+        term.setCursorPos(1, 1);
+        if (self.data.promptMode) then
+            self.data.promptMode = false;
+        else
+            self.data.running = false;
+        end
     end,
     update = function(self, ...)
-        return self:checkUpdate();
+        self:checkUpdate();
     end,
     info = function(self, ...)
         print('Computer label:  ' .. os.getComputerLabel());
         print('Computer ID:     ' .. os.getComputerID());
         print('BaseOS version:  ' .. self.data.version);
         print('Peripherals:     ' .. self.data.peripheralCount);
-
-        return true;
     end,
     program = function(self, ...)
         local programName, programArgs;
@@ -43,16 +45,13 @@ BaseOS.Commands = {
             end
         else
             self:cwrite('Usage: ', colors.white);
-            write('program <program name> [arguments...]\n')
-            ;
+            write('program <program name> [arguments...]\n');
             self:cprint('\nBaseOS Programs:', colors.white);
             self:printTable(self.programs);
 
             self:cprint('\nCraftOS Programs:', colors.white);
             self:printTable(self.nativePrograms);
         end
-
-        return true;
     end,
     startup = function(self, ...)
         local arg = arg or {};
