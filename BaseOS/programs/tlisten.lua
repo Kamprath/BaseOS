@@ -51,6 +51,9 @@ BaseOS.programs['TListen'] = function(self, ...)
             end,
             ['place'] = function(self, token, ...)
                 turtle.place();
+            end,
+            ['drop'] = function(self, token, ...)
+                turtle.drop();
             end
         },
 

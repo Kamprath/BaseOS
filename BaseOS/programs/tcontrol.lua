@@ -8,21 +8,6 @@ BaseOS.programs['TControl'] = function(self, ...)
         data = {
             connected = false,
             window = {width = nil, height = nil},       -- window information
-            keys = {                                    -- key codes
-                up = 200,
-                down = 208,
-                enter = 28,
-                space = 57,
-                ctrl = 29,
-                alt = 56,
-                tab = 15,
-                w = 17,
-                a = 30,
-                s = 31,
-                d = 32,
-                e = 18,
-                q = 16
-            },
             turtleID = nil,                             -- ID of the currently-connected turtle
             selection = 1,                              -- Current menu selection,
             activeMenuKey = nil,                        -- The array key of an object in the 'menus' table
@@ -71,10 +56,20 @@ BaseOS.programs['TControl'] = function(self, ...)
         init = function(self)
             self.data.window.width, self.data.window.height = term.getSize();
 
+            term.clear();
+            term.setCursorPos(1, 1);
+
             while (not self.data.connected) do
                 -- establish a connection to the turtle
                 BaseOS:cwrite('Specify turtle ID to connect to: ', colors.white);
-                self.data.turtleID = tonumber(io.read());
+                self.data.turtleID = io.read();
+
+                if (self.data.turtleID ~= '') then
+                    self.data.turtleID = tonumber(self.data.turtleID);
+                else
+                    break;
+                end
+
                 local response = BaseOS.Turtle:request(self.data.turtleID, {type='connect'});
                 if (not response == false) then
                     if (response.success == true) then
@@ -112,11 +107,11 @@ BaseOS.programs['TControl'] = function(self, ...)
                 local selection = self.data.selection;
                 local menuSize = BaseOS:tableSize(self.menus[self.data.activeMenuKey]);
 
-                if ((key == self.data.keys.up or key == self.data.keys.w) and (selection - 1) >= 1) then
+                if ((key == BaseOS.data.keys.up or key == BaseOS.data.keys.w) and (selection - 1) >= 1) then
                     self.data.selection = selection - 1;
-                elseif ((key == self.data.keys.down or key == self.data.keys.s) and (selection + 1) <= menuSize) then
+                elseif ((key == BaseOS.data.keys.down or key == BaseOS.data.keys.s) and (selection + 1) <= menuSize) then
                     self.data.selection = selection + 1;
-                elseif (key == self.data.keys.enter or key == self.data.keys.space or key == self.data.keys.e) then
+                elseif (key == BaseOS.data.keys.enter or key == BaseOS.data.keys.space or key == BaseOS.data.keys.e) then
                     self:doMenuAction(self.menus[self.data.activeMenuKey], self.data.selection);
                 end
             end
@@ -173,27 +168,28 @@ BaseOS.programs['TControl'] = function(self, ...)
         controlTurtle = function(self)
             -- bindings[<key code>] = <command name>
             local bindings = {
-                [self.data.keys.w] = 'forward',
-                [self.data.keys.s] = 'back',
-                [self.data.keys.a] = 'left',
-                [self.data.keys.d] = 'right',
-                [self.data.keys.ctrl] = 'down',
-                [self.data.keys.space] = 'up',
-                [self.data.keys.e] = 'dig'
+                [BaseOS.data.keys.w] = 'forward',
+                [BaseOS.data.keys.s] = 'back',
+                [BaseOS.data.keys.a] = 'left',
+                [BaseOS.data.keys.d] = 'right',
+                [BaseOS.data.keys.ctrl] = 'down',
+                [BaseOS.data.keys.space] = 'up',
+                [BaseOS.data.keys.e] = 'dig',
+                [BaseOS.data.keys.f] = 'drop'
             };
 
             term.clear();
             term.setCursorPos(1, 1);
-            print('Use W, A, S, D, Space, and Ctrl to move around.\n\nPress E to dig and Q to place an item from the turtle\'s current slot.\n\nPress Tab to exit direct control mode.');
+            print('Use W, A, S, D, Space, and Ctrl to move around.\n\nPress E to dig and Q to place an item from the turtle\'s current slot.\nPress F to drop an item from the current slot.\n\nPress Tab to exit direct control mode.');
 
             while (true) do
                 local e, key = os.pullEvent('key');
 
                 if (bindings[key] ~= nil) then
                     self:command(bindings[key]);
-                elseif (key == self.data.keys.q) then
+                elseif (key == BaseOS.data.keys.q) then
                     self:placeItem();
-                elseif (key == self.data.keys.tab) then
+                elseif (key == BaseOS.data.keys.tab) then
                     break;
                 end
             end
