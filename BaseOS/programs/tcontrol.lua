@@ -199,7 +199,7 @@ BaseOS.programs['TControl'] = function(self, ...)
             -- send viewinventory command, turtle should respond with data
             local data = BaseOS.Turtle:request(self.data.turtleID, {type='command',command='viewinventory'});
 
-            if (data.inventory ~= nil and data.activeSlot ~= nil) then
+            if (data.inventory ~= nil and BaseOS:tableSize(data.inventory) > 0) then
                 self.menus['inventory'] = data.inventory;
                 self.data.activeMenuKey = 'inventory';
 
@@ -213,6 +213,8 @@ BaseOS.programs['TControl'] = function(self, ...)
                         self.data.message = 'Set active turtle slot to item \'' .. key .. '\'';
                     end
                 end
+            else
+                self.data.message = 'Turtle inventory is empty.';
             end
         end,
 
