@@ -9,6 +9,7 @@ files['/BaseOS/baseos.lua'] = baseURL .. '/BaseOS/baseos.lua';
 files['/BaseOS/libraries/JSON.lua'] = baseURL .. '/BaseOS/libraries/JSON.lua';
 files['/BaseOS/components/baseos.turtle.lua'] = baseURL .. '/BaseOS/components/baseos.turtle.lua';
 files['/BaseOS/components/baseos.commands.lua'] = baseURL .. '/BaseOS/components/baseos.commands.lua';
+files['/BaseOS/components/baseos.menus.lua'] = baseURL .. '/BaseOS/components/baseos.menus.lua';
 files['/BaseOS/programs/tcontrol.lua'] = baseURL .. '/BaseOS/programs/tcontrol.lua';
 files['/BaseOS/programs/tlisten.lua'] = baseURL .. '/BaseOS/programs/tlisten.lua';
 
