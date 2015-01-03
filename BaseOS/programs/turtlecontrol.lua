@@ -22,6 +22,32 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
                 action = function(self)
                     self.TurtleControl:viewInventory();
                 end
+            },
+            [3] = {
+                name = 'Choose Interaction Side',
+                action = function(self)
+                    self.TurtleControl:chooseDirection();
+                end
+            }
+        },
+        directionMenu = {
+            [1] = {
+                name = 'Up',
+                action = function(self)
+                    self.TurtleControl:setDirection('up');
+                end
+            },
+            [2] = {
+                name = 'Forward',
+                action = function(self)
+                    self.TurtleControl:setDirection('forward');
+                end
+            },
+            [3] = {
+                name = 'Down',
+                action = function(self)
+                    self.TurtleControl:setDirection('down');
+                end
             }
         },
 
@@ -129,6 +155,19 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
             else
                 BaseOS:setMessage('Turtle inventory is empty.');
             end
+        end,
+
+        chooseDirection = function(self)
+            local menuTitle = 'Choose Interaction Side';
+            BaseOS:addMenu(menuTitle, self.directionMenu);
+            BaseOS:useMenu(menuTitle);
+        end,
+
+        setDirection = function(self, direction)
+            local data = {type='command',command='setdirection',args={direction}};
+            BaseOS.Turtle:request(self.data.turtleID, data, false);
+            BaseOS:setMessage('Set turtle interaction side to ' .. direction);
+            BaseOS:previousMenu();
         end,
 
         placeItem = function(self)

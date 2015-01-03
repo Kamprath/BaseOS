@@ -11,7 +11,7 @@ files['/BaseOS/components/baseos.turtle.lua'] = baseURL .. '/BaseOS/components/b
 files['/BaseOS/components/baseos.commands.lua'] = baseURL .. '/BaseOS/components/baseos.commands.lua';
 files['/BaseOS/components/baseos.menus.lua'] = baseURL .. '/BaseOS/components/baseos.menus.lua';
 files['/BaseOS/programs/turtlecontrol.lua'] = baseURL .. '/BaseOS/programs/turtlecontrol.lua';
-files['/BaseOS/programs/tlisten.lua'] = baseURL .. '/BaseOS/programs/tlisten.lua';
+files['/BaseOS/programs/turtlelisten.lua'] = baseURL .. '/BaseOS/programs/turtlelisten.lua';
 
 term.clear();
 term.setCursorPos(2, 1);

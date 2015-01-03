@@ -1,20 +1,27 @@
 --[[
--- TurtleListen listens for and responds to requests from TurtleControl programs
+-- Turtle Listen listens for and responds to requests from Turtle Control programs
 --]]
 
-BaseOS.programs['TListen'] = function(self, ...)
-    local TurtleListen = {
+BaseOS.programs['Turtle Listen'] = function(self, ...)
+    self.TurtleListen = {
         data = {
             running = true,
             connected = false,
-            computerID = nil
+            computerID = nil,
+            direction = 'forward'
         },
         commands = {
             ['back'] = function(self, token, ...)
                 turtle.back();
             end,
             ['dig'] = function(self, token, ...)
-                turtle.dig();
+                if (self.data.direction == 'up') then
+                    turtle.digUp();
+                elseif (self.data.direction == 'down') then
+                    turtle.digDown();
+                else
+                    turtle.dig();
+                end
             end,
             ['down'] = function(self, token, ...)
                 turtle.down();
@@ -50,10 +57,27 @@ BaseOS.programs['TListen'] = function(self, ...)
                 turtle.select(arg[1]);
             end,
             ['place'] = function(self, token, ...)
-                turtle.place();
+                if (self.data.direction == 'up') then
+                    turtle.placeUp();
+                elseif (self.data.direction == 'down') then
+                    turtle.placeDown();
+                else
+                    turtle.place();
+                end
             end,
             ['drop'] = function(self, token, ...)
-                turtle.drop();
+                if (self.data.direction == 'up') then
+                    turtle.dropUp();
+                elseif (self.data.direction == 'down') then
+                    turtle.dropDown();
+                else
+                    turtle.drop();
+                end
+            end,
+            ['setdirection'] = function(self, token, ...)
+                if (arg[1] == 'forward' or arg[1] == 'down' or arg[1] == 'up') then
+                    self.data.direction = arg[1];
+                end
             end
         },
 
@@ -139,6 +163,6 @@ BaseOS.programs['TListen'] = function(self, ...)
             BaseOS:cwrite(message .. '\n', colors.yellow);
         end
     };
- --
-    TurtleListen:init();
+
+    self.TurtleListen:init();
 end
