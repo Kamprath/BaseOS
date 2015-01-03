@@ -6,48 +6,57 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
     self.TurtleControl = {
         data = {
             connected = false,
-            turtleID = nil                             -- ID of the currently-connected turtle
+            turtleID = nil
         },
 
         -- menu actions will be called in the context of BaseOS
-        menu = {
-            [1] = {
-                name = 'Control turtle',
-                action = function(self)
-                    self.TurtleControl:controlTurtle();
-                end
+        menus = {
+            ['Turtle Control'] = {
+                [1] = {
+                    name = 'Control turtle',
+                    action = function(self)
+                        self.TurtleControl:controlTurtle();
+                    end
+                },
+                [2] = {
+                    name = 'Select Inventory Item',
+                    action = function(self)
+                        self.TurtleControl:viewInventory();
+                    end
+                },
+                [3] = {
+                    name = 'Choose Interaction Side',
+                    action = function(self)
+                        self.TurtleControl:chooseDirection();
+                    end
+                },
+                [4] = {
+                    name = 'Exit',
+                    action = function(self)
+                        self.TurtleControl:disconnect();
+                        BaseOS:previousMenu();
+                    end
+                }
             },
-            [2] = {
-                name = 'Select Inventory Item',
-                action = function(self)
-                    self.TurtleControl:viewInventory();
-                end
-            },
-            [3] = {
-                name = 'Choose Interaction Side',
-                action = function(self)
-                    self.TurtleControl:chooseDirection();
-                end
-            }
-        },
-        directionMenu = {
-            [1] = {
-                name = 'Up',
-                action = function(self)
-                    self.TurtleControl:setDirection('up');
-                end
-            },
-            [2] = {
-                name = 'Forward',
-                action = function(self)
-                    self.TurtleControl:setDirection('forward');
-                end
-            },
-            [3] = {
-                name = 'Down',
-                action = function(self)
-                    self.TurtleControl:setDirection('down');
-                end
+            ['Choose Interaction Side'] = {
+                [1] = {
+                    name = 'Up',
+                    action = function(self)
+                        self.TurtleControl:setDirection('up');
+                    end
+                },
+                [2] = {
+                    name = 'Forward',
+                    action = function(self)
+                        self.TurtleControl:setDirection('forward');
+                    end
+                },
+                [3] = {
+                    name = 'Down',
+                    action = function(self)
+                        self.TurtleControl:setDirection('down');
+                    end
+                }
             }
         },
 
@@ -76,6 +85,7 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
             end
         end,
 
+        --- Initializes the application
         init = function(self)
             -- establish a connection to the turtle
             BaseOS:cwrite('Specify turtle ID to connect to: ', colors.white);
@@ -89,7 +99,7 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
                     if (response.success == true) then
                         self.data.connected = true;
                         BaseOS:setMessage('');
-                        BaseOS:addMenu('Turtle Control', self.menu);
+                        BaseOS:addMenu('Turtle Control', self.menus['Turtle Control']);
                         BaseOS:useMenu('Turtle Control');
                     else
                         BaseOS:setMessage('Turtle refused connection.');
@@ -116,7 +126,7 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
 
             term.clear();
             term.setCursorPos(1, 1);
-            print('Use W, A, S, D, Space, and Ctrl to move around.\n\nPress E to dig and Q to place an item from the turtle\'s current slot.\nPress F to drop an item from the current slot.\n\nPress Tab to exit direct control mode.');
+            print('W, A, S, D - move\nSpace - up\nCtrl - down\nE - dig\nQ - place item\nF - drop items\nTab - exit');
 
             while (true) do
                 local e, key = os.pullEvent('key');
@@ -131,6 +141,7 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
             end
         end,
 
+        --- Populates a menu with inventory data from turtle
         viewInventory = function(self)
             -- send command, get response data
             local data = BaseOS.Turtle:request(self.data.turtleID, {type='command',command='viewinventory'});
@@ -157,12 +168,14 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
             end
         end,
 
+        --- Activates a menu for selecting the interaction side
         chooseDirection = function(self)
             local menuTitle = 'Choose Interaction Side';
-            BaseOS:addMenu(menuTitle, self.directionMenu);
+            BaseOS:addMenu(menuTitle, self.menus[menuTitle]);
             BaseOS:useMenu(menuTitle);
         end,
 
+        --- Commands the turtle to use a specific side for interaction
         setDirection = function(self, direction)
             local data = {type='command',command='setdirection',args={direction}};
             BaseOS.Turtle:request(self.data.turtleID, data, false);
@@ -170,10 +183,12 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
             BaseOS:previousMenu();
         end,
 
+        --- Commands the turtle to place an item
         placeItem = function(self)
             BaseOS.Turtle:request(self.data.turtleID, {type='command',command='place'}, false);
         end,
 
+        --- Sends a disconnect message to the turtle and exits
         disconnect = function(self)
             -- send disconnect message to turtle
             BaseOS.Turtle:request(self.data.turtleID, {type='disconnect'}, false);
@@ -183,6 +198,5 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
         end
     }
 
-    -- start the program
     self.TurtleControl:init();
 end
