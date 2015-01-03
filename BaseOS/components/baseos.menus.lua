@@ -1,5 +1,5 @@
 BaseOS.Menus = {
-    ['main'] = {
+    ['BaseOS'] = {
         [1] = {
             name = 'Programs',
             action = function(self)
@@ -13,7 +13,7 @@ BaseOS.Menus = {
                     BaseOS.Menus['programs'][i]['action'] = val;
                     i = i + 1;
                 end
-                BaseOS:setMenu('programs');
+                BaseOS:useMenu('programs');
             end
         },
         [2] = {

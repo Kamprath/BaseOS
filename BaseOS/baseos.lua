@@ -5,7 +5,7 @@ BaseOS = {
         rsOutputSide = nil
     },
     data = {
-        version = '1.2',
+        version = '1.2.1',
         requiredCraftOS = 'CraftOS 1.6',
         baseUrl = 'http://johnny.website',
         versionUrl = 'http://johnny.website/src/version.txt',
@@ -22,7 +22,8 @@ BaseOS = {
         },
         menu = {
             selection = 1,
-            key = 'main',
+            key = 'BaseOS',
+            message = '',
             columnSize = nil,
             history = {}
         },
@@ -221,9 +222,35 @@ BaseOS = {
     --- Create a menu loop for command input
     menu = function(self)
         while (self.data.running) do
-            self:drawMenu();
+            self:drawInterface();
             self:handleEvent(os.pullEvent('key'));
         end
+    end,
+
+    drawInterface = function(self)
+        term.clear();
+        self:drawHeader();
+        self:drawMenu();
+        self:drawMessage();
+    end,
+
+    drawHeader = function(self)
+        term.setCursorPos(1, 1);
+        term.setBackgroundColor(colors.white);
+
+        for i=1, self.data.window.width do
+            write(' ');
+        end
+
+        term.setCursorPos(3, 1);
+        self:cwrite(self.data.menu.key, colors.black);
+
+        term.setBackgroundColor(self.data.term.bgColor);
+    end,
+
+    drawMessage = function(self)
+        term.setCursorPos(3, self.data.window.height - 1);
+        self:cwrite(self.data.menu.message, colors.white);
     end,
 
     drawMenu = function(self)
@@ -243,7 +270,6 @@ BaseOS = {
             menuSize = menuSize + 1;
         end
 
-        term.clear();
         if ((menuSize * 2) < self.data.window.height) then
             yStart = math.floor((self.data.window.height - (menuSize * 2)) / 2);
         else
@@ -286,7 +312,7 @@ BaseOS = {
             end
         end
     end,
-    setMenu = function(self, key, setHistory)
+    useMenu = function(self, key, setHistory)
         if (setHistory == nil) then setHistory = true; end
 
         if (setHistory) then
@@ -302,12 +328,17 @@ BaseOS = {
 
         if (historySize> 0) then
             table.remove(self.data.menu.history, historySize)
-            self:setMenu(key, false);
+            self:useMenu(key, false);
         else
             term.clear();
             term.setCursorPos(1, 1);
             self.data.running = false;
         end
+    end,
+
+    --- Sets a menu message to display on next redraw
+    setMessage = function(self, message)
+        self.data.menu.message = message;
     end,
 
     handleEvent = function(self, ...)
@@ -320,11 +351,17 @@ BaseOS = {
             local selection = self.data.menu.selection;
             local menuSize = self:tableSize(menu);
 
+            -- Move menu selection up
             if ((key == self.data.keys.up or key == self.data.keys.w) and (selection - 1) >= 1) then
                 self.data.menu.selection = selection - 1;
+
+            -- Move menu selection down
             elseif ((key == self.data.keys.down or key == self.data.keys.s) and (selection + 1) <= menuSize) then
                 self.data.menu.selection = selection + 1;
+
+            -- Choose current menu selection
             elseif (key == self.data.keys.enter or key == self.data.keys.space or key == self.data.keys.e) then
+                self.data.menu.message = '';
                 menu[self.data.menu.selection].action(self);
             end
         end
@@ -388,6 +425,16 @@ BaseOS = {
             result[nb + 1] = string.sub(str, lastPos)
         end
         return result
+    end,
+
+    --- Stores a new BaseOS menu
+    -- @param context       The object/namespace from which the menu originated
+    -- @param menuTitle     The title/key of the menu
+    -- @param menuOptions   A table representing menu options.
+    --                      Tables should maintain the BaseOS menu format of:
+    --                      {[1] = {name='Option name', action=function(self) ... end, [2] = ...}
+    addMenu = function(self, menuTitle, menuOptions)
+        self.Menus[menuTitle] = menuOptions;
     end,
 
     --- print the keys of a table in a table layout
