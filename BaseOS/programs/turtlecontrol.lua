@@ -152,6 +152,11 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
                 local i = 1;
                 for key, val in pairs(data.inventory) do
                     local slot = data.inventory[key];
+
+                    -- remove prefix from item name
+                    local startPos, endPos = key:find(':');
+                    key = key:sub(endPos+1);
+
                     menu[i] = {};
                     menu[i].name = key;
                     menu[i].action = function(self)
