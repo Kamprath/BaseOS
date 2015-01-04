@@ -106,6 +106,7 @@ BaseOS.programs['Turtle Listen'] = function(self, ...)
             if (requestData.type == 'identify') then
                 self:log('Identity requested by computer ' .. senderID);
                 responseData.label = os.getComputerLabel();
+                responseData.id = os.getComputerID();
                 responseData.success = true;
 
             -- handle 'connect' request

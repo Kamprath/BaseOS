@@ -3,7 +3,7 @@ BaseOS = {
 
     },
     data = {
-        version = '1.2.1',
+        version = '1.2.2',
         requiredCraftOS = 'CraftOS 1.6',
         baseUrl = 'http://johnny.website',
         versionUrl = 'http://johnny.website/src/version.txt',
