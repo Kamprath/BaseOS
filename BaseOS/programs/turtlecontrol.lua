@@ -11,7 +11,7 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
 
         -- menu actions will be called in the context of BaseOS
         menus = {
-            ['Turtle Control'] = {
+            ['main'] = {
                 [1] = {
                     name = 'Control turtle',
                     action = function(self)
@@ -88,25 +88,53 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
         --- Initializes the application
         init = function(self)
             -- establish a connection to the turtle
-            BaseOS:cwrite('Specify turtle ID to connect to: ', colors.white);
-            self.data.turtleID = io.read();
+            self:chooseTurtle();
+        end,
 
-            if (self.data.turtleID ~= '' and tonumber(self.data.turtleID)) then
-                self.data.turtleID = tonumber(self.data.turtleID);
+        --- Prompts for selection of a turtle to connect to.
+        chooseTurtle = function(self)
+            -- broadcast identify command
+            local responses = BaseOS.Turtle:broadcast({type='identify'});
+            local menu = {};
 
-                local response = BaseOS.Turtle:request(self.data.turtleID, {type='connect'});
-                if (not response == false) then
-                    if (response.success == true) then
-                        self.data.connected = true;
-                        BaseOS:setMessage('');
-                        BaseOS:addMenu('Turtle Control', self.menus['Turtle Control']);
-                        BaseOS:useMenu('Turtle Control');
-                    else
-                        BaseOS:setMessage('Turtle refused connection.');
+            if (responses ~= nil) then
+                -- iterate through responses
+                local i = 1;
+                for key, response in pairs(responses) do
+                    -- create menu of turtle labels. Each menu option's action
+                    menu[i] = {};
+                    menu[i].name = response.label;
+                    menu[i].action = function(self)
+                        self.TurtleControl:connect(response.id);
                     end
-                else
-                    BaseOS:setMessage('Turtle not found.');
+                    i = i + 1;
                 end
+
+                BaseOS:addMenu('Select a Turtle', menu);
+                BaseOS:useMenu('Select a Turtle');
+            else
+                -- set message
+                BaseOS:setMessage('No turtles available.');
+            end
+        end,
+
+        connect = function(self, turtleID)
+            local response = BaseOS.Turtle:request(turtleID, {type='connect'});
+            if (not response == false) then
+                if (response.success == true) then
+                    self.data.turtleID = turtleID;
+                    self.data.connected = true;
+                    BaseOS:setMessage('');
+
+                    local turtle = BaseOS.Turtle:request(turtleID, {type='identify'});
+                    local title = turtle.label;
+                    BaseOS:addMenu(title, self.menus['main']);
+                    BaseOS:useMenu(title);
+                else
+                    BaseOS:setMessage('Turtle refused connection.');
+                end
+            else
+                BaseOS:setMessage('Turtle not found.');
             end
         end,
 
