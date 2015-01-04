@@ -1,8 +1,6 @@
 BaseOS = {
-    -- config data will be loaded from config.lua
     config = {
-        rsInputSide = nil,
-        rsOutputSide = nil
+
     },
     data = {
         version = '1.2.1',
@@ -57,23 +55,25 @@ BaseOS = {
         monitor = nil,
         printer = nil
     },
-    programs = {}, -- store programs loaded from programs directory,
+    -- store programs loaded from programs directory
+    programs = {},
+    -- store CraftOS programs
     nativePrograms = {},
-    startup = {}, -- store startup commands loaded from startup directory
+    -- store startup commands loaded from startup directory
+    startup = {},
 
     --- Initialize the application
     init = function(self)
-        self.data.window.width, self.data.window.height = term.getSize();
-        self.data.menu.columnSize = self.data.window.width / 4;
-
         term.clear();
-        term.setBackgroundColor(self.data.term.bgColor);
-        term.setTextColor(self.data.term.fgColor);
+        self.data.window.width, self.data.window.height = term.getSize();
+        self.data.menu.columnSize = self.data.window.width / 2;
 
         if (not self:checkSystem()) then
             print('BaseOS is incompatible with this computer.');
             return false;
         end
+        term.setBackgroundColor(self.data.term.bgColor);
+        term.setTextColor(self.data.term.fgColor);
         self:checkUpdate();
 
         term.clear();
@@ -87,7 +87,7 @@ BaseOS = {
         if (not self:getConfig()) then self:setup(); end
 
         self:doStartup();
-        self:menu();
+        self:startLoop();
     end,
 
     --- load any components
@@ -220,7 +220,7 @@ BaseOS = {
     end,
 
     --- Create a menu loop for command input
-    menu = function(self)
+    startLoop = function(self)
         while (self.data.running) do
             self:drawInterface();
             self:handleEvent(os.pullEvent('key'));
@@ -256,7 +256,7 @@ BaseOS = {
     drawMenu = function(self)
         local menu = self.Menus[self.data.menu.key];
         local menuSize = self:tableSize(menu);
-        local yStart;
+        local yStart = 3;
 
         -- insert 'back'/'exit' menu option
         if (menu[menuSize].name ~= 'Exit' and menu[menuSize].name ~= 'Back') then
@@ -270,11 +270,11 @@ BaseOS = {
             menuSize = menuSize + 1;
         end
 
-        if ((menuSize * 2) < self.data.window.height) then
+        --[[if ((menuSize * 2) < self.data.window.height) then
             yStart = math.floor((self.data.window.height - (menuSize * 2)) / 2);
         else
             yStart = 1;
-        end
+        end]]
 
         term.setCursorPos(1, yStart);
 
@@ -602,5 +602,5 @@ BaseOS = {
         else
             return false;
         end
-    end,
+    end
 };
