@@ -22,6 +22,13 @@ BaseOS.Menus = {
                 BaseOS.data.promptMode = true;
                 BaseOS:prompt();
             end
+        },
+        [3] = {
+            name = 'Shutdown',
+            exit = true,
+            action = function(self)
+                os.shutdown();
+            end
         }
     }
 };

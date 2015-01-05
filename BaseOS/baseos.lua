@@ -3,7 +3,7 @@ BaseOS = {
 
     },
     data = {
-        version = '1.2.2',
+        version = '1.2.3',
         requiredCraftOS = 'CraftOS 1.6',
         baseUrl = 'http://johnny.website',
         versionUrl = 'http://johnny.website/src/version.txt',
@@ -256,33 +256,29 @@ BaseOS = {
     drawMenu = function(self)
         local menu = self.Menus[self.data.menu.key];
         local menuSize = self:tableSize(menu);
-        local yStart = 3;
+        local yStart = 4;
 
-        -- insert 'back'/'exit' menu option
-        if (menu[menuSize].name ~= 'Exit' and menu[menuSize].name ~= 'Back') then
-            menu[menuSize+1] = {};
-            if (#self.data.menu.history > 0) then
-                menu[menuSize+1].name = 'Back';
-            else
-                menu[menuSize+1].name = 'Exit';
-            end
-            menu[menuSize+1].action = self.previousMenu;
+        -- if last menu choice isn't an exit option, append one
+        if (not menu[menuSize].exit) then
             menuSize = menuSize + 1;
+            menu[menuSize] = {};
+            if (#self.data.menu.history > 0) then
+                menu[menuSize].name = 'Back';
+            else
+                menu[menuSize].name = 'Exit';
+            end
+            menu[menuSize].action = self.previousMenu;
+            menu[menuSize].exit = true;
         end
 
-        --[[if ((menuSize * 2) < self.data.window.height) then
-            yStart = math.floor((self.data.window.height - (menuSize * 2)) / 2);
-        else
-            yStart = 1;
-        end]]
-
+        -- write each menu item
         term.setCursorPos(1, yStart);
-
         local column = 0;
         local columns = math.floor(self.data.window.width / self.data.menu.columnSize);
         local i = 1;
         for key, option in ipairs(menu) do
             local x, y = term.getCursorPos();
+
             if (column < columns) then
                 -- if end of terminal has been reached, move to a new column
                 if (y >= self.data.window.height) then
@@ -307,11 +303,26 @@ BaseOS = {
                     write('   ');
                 end
 
-                write(option.name .. '\n\n');
+                -- store beginning coordinates
+                self.Menus[self.data.menu.key][key].coords = {};
+                local xPos, yPos = term.getCursorPos();
+                self.Menus[self.data.menu.key][key].coords[1] = {xPos, yPos};
+
+                write(option.name);
+
+                -- store end coordinates
+                local xPos, yPos = term.getCursorPos();
+                self.Menus[self.data.menu.key][key].coords[2] = {xPos, yPos};
+
+                write('\n\n');
                 i = i + 1;
             end
         end
     end,
+
+    --- Displays a menu
+    -- @param key           The menu title/key
+    -- @param setHistory    (Optional) If true, the previous menu will be stored in history, allowing the user to go back
     useMenu = function(self, key, setHistory)
         if (setHistory == nil) then setHistory = true; end
 
@@ -322,6 +333,8 @@ BaseOS = {
         self.data.menu.key = key;
         self.data.menu.selection = 1;
     end,
+
+    --- Displays the previous menu in history if history exists, otherwise exits the application
     previousMenu = function(self)
         local historySize = #self.data.menu.history;
         local key = self.data.menu.history[historySize];

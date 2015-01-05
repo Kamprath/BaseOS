@@ -31,7 +31,8 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
                     end
                 },
                 [4] = {
-                    name = 'Exit',
+                    name = 'Disconnect',
+                    exit = true,
                     action = function(self)
                         self.TurtleControl:disconnect();
                         BaseOS:previousMenu();
@@ -55,6 +56,13 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
                     name = 'Down',
                     action = function(self)
                         self.TurtleControl:setDirection('down');
+                    end
+                },
+                [4] = {
+                    name = 'Cancel',
+                    exit = true,
+                    action = function(self)
+                        BaseOS:previousMenu();
                     end
                 }
             }
