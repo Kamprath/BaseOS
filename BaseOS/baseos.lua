@@ -3,7 +3,7 @@ BaseOS = {
 
     },
     data = {
-        version = '1.2.3',
+        version = '1.3',
         requiredCraftOS = 'CraftOS 1.6',
         baseUrl = 'http://johnny.website',
         versionUrl = 'http://johnny.website/src/version.txt',
@@ -223,7 +223,7 @@ BaseOS = {
     startLoop = function(self)
         while (self.data.running) do
             self:drawInterface();
-            self:handleEvent(os.pullEvent('key'));
+            self:handleEvent(os.pullEvent());
         end
     end,
 
@@ -368,16 +368,39 @@ BaseOS = {
             if ((key == self.data.keys.up or key == self.data.keys.w) and (selection - 1) >= 1) then
                 self.data.menu.selection = selection - 1;
 
-            -- Move menu selection down
+                -- Move menu selection down
             elseif ((key == self.data.keys.down or key == self.data.keys.s) and (selection + 1) <= menuSize) then
                 self.data.menu.selection = selection + 1;
 
-            -- Choose current menu selection
+                -- Choose current menu selection
             elseif (key == self.data.keys.enter or key == self.data.keys.space or key == self.data.keys.e) then
                 self.data.menu.message = '';
                 menu[self.data.menu.selection].action(self);
+
+                -- Go back or exit menu
+            elseif (key == self.data.keys.tab) then
+                menu[menuSize].action(self);
+            end
+        elseif (eventType == 'mouse_click') then
+            local choice = self:getChoiceClicked(arg[2], arg[3]);
+            if (choice) then
+                choice.action(self);
             end
         end
+    end,
+
+    --- Determine if a menu choice was clicked
+    -- @param x     The X click coordinate
+    -- @param y     The Y click coordinate
+    -- @return      Returns the table of data for any choice clicked, otherwise returns false
+    getChoiceClicked = function(self, x, y)
+        for key, val in pairs(self.Menus[self.data.menu.key]) do
+            if (x >= val.coords[1][1] and x <= val.coords[2][1] and y >= val.coords[1][2] and y <= val.coords[2][2]) then
+                return val;
+            end
+        end
+
+        return false;
     end,
 
     prompt = function(self)
