@@ -256,7 +256,7 @@ BaseOS = {
     drawMenu = function(self)
         local menu = self.Menus[self.data.menu.key];
         local menuSize = self:tableSize(menu);
-        local yStart = 4;
+        local yStart = 3;
 
         -- if last menu choice isn't an exit option, append one
         if (not menu[menuSize].exit) then
