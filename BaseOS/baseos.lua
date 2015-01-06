@@ -332,6 +332,8 @@ BaseOS = {
 
         self.data.menu.key = key;
         self.data.menu.selection = 1;
+
+        self:setMessage('');
     end,
 
     --- Displays the previous menu in history if history exists, otherwise exits the application

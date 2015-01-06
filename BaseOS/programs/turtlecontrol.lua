@@ -220,8 +220,8 @@ BaseOS.programs['Turtle Control'] = function(self, ...)
         setDirection = function(self, direction)
             local data = {type='command',command='setdirection',args={direction}};
             BaseOS.Turtle:request(self.data.turtleID, data, false);
-            BaseOS:setMessage('Set turtle interaction side to ' .. direction);
             BaseOS:previousMenu();
+            BaseOS:setMessage('Set turtle interaction side to ' .. direction);
         end,
 
         --- Commands the turtle to place an item
