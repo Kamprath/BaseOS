@@ -10,13 +10,9 @@ BaseOS.Commands = {
     end,
     exit = function(self, ...)
         -- exit prompt mode if active or quit application
+        self:stopPrompt();
         term.clear();
         term.setCursorPos(1, 1);
-        if (self.data.promptMode) then
-            self.data.promptMode = false;
-        else
-            self.data.running = false;
-        end
     end,
     update = function(self, ...)
         self:checkUpdate();
@@ -37,9 +33,8 @@ BaseOS.Commands = {
             programArgs = arg;
 
             if (self.programs[programName] ~= nil) then
+                self:stopPrompt();
                 self.programs[programName](self, unpack(programArgs));
-            elseif (self.nativePrograms[programName] ~= nil) then
-                self.nativePrograms[programName](self, unpack(programArgs));
             else
                 print('Unrecognized program.');
             end
@@ -48,9 +43,6 @@ BaseOS.Commands = {
             write('program <program name> [arguments...]\n');
             self:cprint('\nBaseOS Programs:', colors.white);
             self:printTable(self.programs);
-
-            self:cprint('\nCraftOS Programs:', colors.white);
-            self:printTable(self.nativePrograms);
         end
     end,
     startup = function(self, ...)
