@@ -1,9 +1,9 @@
 BaseOS = {
     config = {
-
+        
     },
     data = {
-        version = '1.3',
+        version = '1.3.1',
         requiredCraftOS = 'CraftOS 1.6',
         baseUrl = 'http://johnny.website',
         versionUrl = 'http://johnny.website/src/version.txt',
@@ -57,8 +57,6 @@ BaseOS = {
     },
     -- store programs loaded from programs directory
     programs = {},
-    -- store CraftOS programs
-    nativePrograms = {},
     -- store startup commands loaded from startup directory
     startup = {},
 
@@ -130,15 +128,6 @@ BaseOS = {
 
         for key, val in pairs(files) do
             dofile('/BaseOS/programs/' .. val);
-        end
-
-        -- get CraftOS programs
-        local programs = shell.programs();
-        for key, val in pairs(programs) do
-            -- add function that executes os.run() on the program when called
-            self.nativePrograms[val] = function(self, ...)
-                shell.run(val, unpack(arg));
-            end
         end
     end,
 
@@ -383,11 +372,14 @@ BaseOS = {
             elseif (key == self.data.keys.tab) then
                 menu[menuSize].action(self);
             end
+            
         elseif (eventType == 'mouse_click') then
             local choice = self:getChoiceClicked(arg[2], arg[3]);
             if (choice) then
                 choice.action(self);
             end
+        elseif (eventType == 'rednet_receive') then
+
         end
     end,
 
@@ -405,6 +397,7 @@ BaseOS = {
         return false;
     end,
 
+    --- Displays a command prompt when prompt mode is true
     prompt = function(self)
         term.clear();
         term.setCursorPos(1, 1);
@@ -633,6 +626,7 @@ BaseOS = {
         end
     end,
 
+    --- Opens the modem for rednet connections
     initRednet = function(self)
         if (self.peripherals.modem ~= nil) then
             rednet.open(self.peripherals.modem.side);
@@ -640,5 +634,16 @@ BaseOS = {
         else
             return false;
         end
-    end
+    end,
+
+    --- Activates the command prompt
+    startPrompt = function(self)
+        self.data.promptMode = true;
+        self:prompt();
+    end,
+
+    -- Terminates the command prompt
+    stopPrompt = function(self)
+        self.data.promptMode = false;
+    end,
 };
