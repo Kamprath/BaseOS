@@ -2,7 +2,7 @@
 -- Turtle Listen listens for and responds to requests from Turtle Control programs
 --]]
 
-BaseOS.programs['Turtle Listen'] = function(self, ...)
+BaseOS.programs['TurtleListen'] = function(self, ...)
     self.TurtleListen = {
         data = {
             running = true,
@@ -82,10 +82,14 @@ BaseOS.programs['Turtle Listen'] = function(self, ...)
         },
 
         init = function(self)
-            term.clear();
-            term.setCursorPos(1, 1);
-            print('Waiting for a connection...');
-            self:startLoop();
+            if (turtle ~= nil) then
+                term.clear();
+                term.setCursorPos(1, 1);
+                print('Waiting for a connection...');
+                self:startLoop();
+            else
+                BaseOS:setMessage('TurtleListen can only be run on a Turtle.');
+            end
         end,
 
         startLoop = function(self)
